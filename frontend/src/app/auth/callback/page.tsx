@@ -6,8 +6,8 @@ export default function Callback() {
     const t = params.get("token");
     if (t) {
       localStorage.setItem("token", t);
-      window.history.replaceState({}, "", "/auth/callback");
-      window.location.href = "/";
+      window.history.replaceState({}, "", "/");
+      window.location.replace("/");
     }
   }, []);
   return <p className="p-8">Signing you in...</p>;

@@ -1,5 +1,13 @@
-type HeaderProps = { name?: string; email?: string; avatar?: string; onLogout?: () => void };
-export default function Header({ name, email, avatar, onLogout }: HeaderProps) {
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchMe } from "../lib/api";
+
+type HeaderProps = { onLogout?: () => void };
+export default function Header({ onLogout }: HeaderProps) {
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
+  const name = me.data?.name;
+  const email = me.data?.email;
+  const avatar = me.data?.avatar;
   return (
     <header className="flex items-center justify-between border-b px-6 py-4">
       <h1 className="text-xl font-semibold">ReachInbox</h1>

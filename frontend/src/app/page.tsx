@@ -4,21 +4,20 @@ import Header from "../components/Header";
 import EmailTable from "../components/EmailTable";
 import ComposeModal from "../components/ComposeModal";
 import { useQuery } from "@tanstack/react-query";
-import { fetchScheduled, fetchSent, fetchMe } from "../lib/api";
+import { fetchScheduled, fetchSent } from "../lib/api";
 
 export default function Dashboard() {
   const [tab, setTab] = useState<"scheduled"|"sent">("scheduled");
   const [open, setOpen] = useState(false);
   const scheduled = useQuery({ queryKey: ["scheduled"], queryFn: fetchScheduled });
   const sent = useQuery({ queryKey: ["sent"], queryFn: fetchSent });
-  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   function handleLogout() {
     localStorage.removeItem("token");
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/auth/google`;
   }
   return (
     <div>
-      <Header name={me.data?.name} email={me.data?.email} avatar={me.data?.avatar} onLogout={handleLogout} />
+      <Header onLogout={handleLogout} />
       <main className="mx-auto max-w-5xl p-6">
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
