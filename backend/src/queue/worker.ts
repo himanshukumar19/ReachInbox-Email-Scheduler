@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import { Worker, Job } from "bullmq";
 import { getRedis } from "../config/redis";
 import { env } from "../config/env";
@@ -21,11 +22,16 @@ export function createEmailWorker(repository: EmailRepository, mailProvider: Mai
       }
 
       try {
-        await mailProvider.send(email);
+        const info = await mailProvider.send(email);
+        console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
         await repository.updateStatus(emailId, "sent");
-      } catch {
-        await repository.updateStatus(emailId, "failed");
-        throw new Error("send failed");
+      } catch (err) {
+        console.error("Send failed:", err);
+        const maxAttempts = job.opts.attempts ?? 1;
+        if (job.attemptsMade >= maxAttempts) {
+          await repository.updateStatus(emailId, "failed");
+        }
+        throw new Error("send failed: " + (err instanceof Error ? err.message : String(err)));
       }
     },
     { connection: getRedis(), concurrency: env.workerConcurrency, limiter: { max: 1, duration: env.delayMs } }

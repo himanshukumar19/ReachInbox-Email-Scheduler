@@ -7,6 +7,7 @@ export class EtherealProvider implements MailProvider {
   private transporter = nodemailer.createTransport({
     host: env.etherealHost,
     port: env.etherealPort,
+    secure: false,
     auth: { user: env.etherealUser, pass: env.etherealPass },
   });
 
@@ -17,6 +18,6 @@ export class EtherealProvider implements MailProvider {
       subject: email.subject,
       html: email.body,
     });
-    return { messageId: info.messageId, previewUrl: nodemailer.getTestMessageUrl(info) ?? undefined };
+    return info;
   }
 }

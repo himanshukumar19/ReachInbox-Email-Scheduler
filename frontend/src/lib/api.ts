@@ -1,7 +1,10 @@
 import axios from "axios";
-import { Email, SchedulePayload } from "../types/email";
+import { CurrentUser, Email, SchedulePayload, ScheduleResponse } from "../types/email";
 
-const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000" });
+const client = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000",
+  withCredentials: false,
+});
 
 client.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
@@ -11,24 +14,30 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-export async function fetchMe(): Promise<{ id: string; email: string; name: string; avatar: string } | null> {
+export async function fetchMe(): Promise<CurrentUser | null> {
   try {
-    const { data } = await client.get("/api/auth/me");
+    const { data } = await client.get<CurrentUser>("/api/auth/me");
     return data;
   } catch {
     return null;
   }
 }
 
-export async function scheduleEmails(payload: SchedulePayload): Promise<{ ids: string[]; count: number }> {
-  const { data } = await client.post("/api/emails/schedule", payload);
+export async function scheduleEmails(payload: SchedulePayload): Promise<ScheduleResponse> {
+  const { data } = await client.post<ScheduleResponse>("/api/emails/schedule", payload);
   return data;
 }
-export async function fetchScheduled(): Promise<Email[]> {
-  const { data } = await client.get("/api/emails/scheduled");
+
+export async function fetchScheduled(limit = 50, offset = 0): Promise<Email[]> {
+  const { data } = await client.get<Email[]>("/api/emails/scheduled", {
+    params: { limit, offset },
+  });
   return data;
 }
-export async function fetchSent(): Promise<Email[]> {
-  const { data } = await client.get("/api/emails/sent");
+
+export async function fetchSent(limit = 50, offset = 0): Promise<Email[]> {
+  const { data } = await client.get<Email[]>("/api/emails/sent", {
+    params: { limit, offset },
+  });
   return data;
 }
