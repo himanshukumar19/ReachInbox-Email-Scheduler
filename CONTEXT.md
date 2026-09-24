@@ -16,6 +16,18 @@ _Avoid_: account, sender
 Rows where `status ∈ {sent, failed}` as returned by `GET /sent`; the dashboard tab labeled `Sent` shows both outcomes to match Figma. Displayed "sent time" for a failed row is `updatedAt` (time of the failed attempt, not an actual send).
 _Avoid_: sent only, completed emails
 
+**Scheduled Email**:
+A row in the `Email` table with `status = scheduled`; it represents a future send that has been enqueued but not yet attempted. BullMQ Redis persistence holds the corresponding delayed job (`jobId = EmailId`). The DB and queue must stay aligned, but on restart only BullMQ recovers the job — never re-seed from DB.
+_Avoid_: pending email, queued message, unprocessed lead
+
+**Sent Email**:
+A row with `status = sent`; a successfully delivered email whose `updatedAt` reflects the actual send time.
+_Avoid_: delivered only, completed message
+
+**Failed Email**:
+A row with `status = failed`; the send was attempted (DB status updated by the worker) but did not complete. Its displayed time is `updatedAt` (time of the failed attempt). It is included in `GET /sent` and the `Sent` dashboard tab.
+_Avoid_: error email, broken email
+
 **Batch Stagger**:
 User-configurable at Compose time via `delayBetweenMs` on the schedule request; `sendAt = base + i * delayBetweenMs` spreads scheduled send times across a large batch at enqueue time.
 _Avoid_: throttle, rate limit
