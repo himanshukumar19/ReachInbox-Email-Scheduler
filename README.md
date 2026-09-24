@@ -129,9 +129,9 @@ Every change is gated on: SOLID principles (§5), exactly three patterns (`repos
 ## Docs
 
 - `docs/PROJECT_BRIEF.md` — single source of truth (assignment brief)
-- `docs/Assignment_Brief.pdf` — same brief in PDF form
-- `docs/adr/0001-persistence-and-idempotency.md` — restart + idempotency decisions + known limitation
-- `docs/adr/0002-rate-limit-scope.md` — per-Sender hourly cap scope
-- `docs/adr/0005-auth-token-storage.md` — JWT in URL + `localStorage`
+- `docs/ReachInbox Email Scheduler - Assignment Reference Guide.pdf` — assignment brief PDF
+- `docs/adr/0001-persistence-and-idempotency.md` — restart + idempotency decisions + known limitation (ADR)
+- `docs/adr/0002-rate-limit-scope.md` — per-Sender hourly cap scope (ADR)
+- `docs/adr/0005-auth-token-storage.md` — JWT in URL + `localStorage` (ADR)
 - `CONTEXT.md` — domain vocabulary (`Sent Emails`, `Batch Stagger`, `Scheduled Email`, etc.)
-- `demo.sh` — locked demo script (do not edit sequence)
+- `demo.sh` — locked demo script (see below)
