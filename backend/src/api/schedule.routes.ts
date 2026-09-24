@@ -1,7 +1,8 @@
+import { randomUUID } from "crypto";
 import { Router } from "express";
 import { scheduleSchema } from "./schedule.schema";
 import { EmailRepository } from "../repositories/email.repository";
-import { enqueueEmail } from "../queue/queue";
+import { enqueueMany } from "../queue/queue";
 
 export function scheduleRouter(repository: EmailRepository): Router {
   const r = Router();
@@ -13,14 +14,17 @@ export function scheduleRouter(repository: EmailRepository): Router {
     const baseTime = new Date(scheduledAt);
     const delayBetween = parsed.data.delayBetweenMs ?? 1000;
 
-    const created: string[] = [];
-    for (let i = 0; i < recipients.length; i++) {
-      const sendAt = new Date(baseTime.getTime() + i * delayBetween);
-      const row = await repository.create({ recipient: recipients[i], subject, body, sender, scheduledAt: sendAt });
-      await enqueueEmail(row.id, sendAt);
-      created.push(row.id);
-    }
-    res.status(201).json({ ids: created, count: created.length });
+    const rows = recipients.map((recipient, i) => ({
+      id: randomUUID(),
+      recipient,
+      subject,
+      body,
+      sender,
+      scheduledAt: new Date(baseTime.getTime() + i * delayBetween),
+    }));
+    await repository.createMany(rows);
+    await enqueueMany(rows.map((r) => ({ emailId: r.id, sendAt: r.scheduledAt })));
+    res.status(201).json({ ids: rows.map((r) => r.id), count: rows.length });
   });
 
   r.get("/scheduled", async (req, res) => {

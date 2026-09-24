@@ -13,8 +13,15 @@ export type EmailRecord = {
   userId?: string | null;
 };
 
+export type EmailCreateData = Omit<EmailRecord, "id" | "createdAt" | "updatedAt" | "status"> & {
+  status?: EmailStatus;
+};
+
+export type EmailBulkCreateData = Omit<EmailRecord, "createdAt" | "updatedAt" | "status">;
+
 export interface EmailRepository {
-  create(data: Omit<EmailRecord, "id" | "createdAt" | "updatedAt" | "status"> & { status?: EmailStatus }): Promise<EmailRecord>;
+  create(data: EmailCreateData): Promise<EmailRecord>;
+  createMany(rows: EmailBulkCreateData[]): Promise<void>;
   findById(id: string): Promise<EmailRecord | null>;
   findScheduled(limit?: number, offset?: number): Promise<EmailRecord[]>;
   findSent(limit?: number, offset?: number): Promise<EmailRecord[]>;

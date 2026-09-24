@@ -1,12 +1,18 @@
-import { EmailRepository, EmailRecord } from "./email.repository";
+import { EmailRepository, EmailRecord, EmailCreateData, EmailBulkCreateData } from "./email.repository";
 import { getPrisma } from "../db/prisma-client";
 
 export class PrismaEmailRepository implements EmailRepository {
   private prisma = getPrisma();
 
-  async create(data: Omit<EmailRecord, "id" | "createdAt" | "updatedAt" | "status"> & { status?: EmailRecord["status"] }): Promise<EmailRecord> {
+  async create(data: EmailCreateData): Promise<EmailRecord> {
     const row = await this.prisma.email.create({ data: { ...data, status: data.status ?? "scheduled" } });
     return row as EmailRecord;
+  }
+
+  async createMany(rows: EmailBulkCreateData[]): Promise<void> {
+    await this.prisma.email.createMany({
+      data: rows.map((r) => ({ ...r, status: r.status ?? "scheduled" })),
+    });
   }
 
   async findById(id: string): Promise<EmailRecord | null> {
