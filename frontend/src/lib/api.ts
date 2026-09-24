@@ -3,6 +3,23 @@ import { Email, SchedulePayload } from "../types/email";
 
 const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000" });
 
+client.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export async function fetchMe(): Promise<{ id: string; email: string; name: string; avatar: string } | null> {
+  try {
+    const { data } = await client.get("/api/auth/me");
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export async function scheduleEmails(payload: SchedulePayload): Promise<{ ids: string[]; count: number }> {
   const { data } = await client.post("/api/emails/schedule", payload);
   return data;
