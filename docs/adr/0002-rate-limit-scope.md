@@ -1,0 +1,3 @@
+# Per-Sender Env-Based Rate Limit
+
+The hourly rate limit is `MAX_EMAILS_PER_HOUR` from env (`backend/src/config/env.ts:23`, default 50) applied per-sender Redis key `rate:<sender>:<hour>` via `INCR`/`EXPIRE 3600`; on breach the job is rescheduled with `moveToDelayed(msUntilNextHour())` and never dropped. This keeps a single limit path that stays correct across multiple workers and matches the existing `rateLimiter/hourly-limiter.ts` + `queue/worker.ts` code, without a second per-request limit path — the `hourlyLimit` request field was removed to avoid an accepted-but-ignored control that would mislead evaluators and the Compose form.

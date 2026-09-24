@@ -1,0 +1,3 @@
+# Concurrency and Delays via BullMQ Limiter
+
+Worker concurrency (`WORKER_CONCURRENCY`, default 5) governs how many jobs can be mid-flight and the send throttle is a BullMQ worker-level limiter `limiter: { max: 1, duration: env.delayMs }`, not a per-job `setTimeout` sleep inside the handler. Concurrency and throttle are intentionally decoupled: the batch stagger (`sendAt = base + i * delayBetweenMs` in `schedule.routes.ts`) spreads enqueue times for large batches, while the worker limiter enforces the true minimum gap between actual sends. A per-job sleep doesn't hold under `concurrency > 1` (five jobs sleeping 1s in parallel still send together), so it can't satisfy "minimum gap between individual emails" on its own.
