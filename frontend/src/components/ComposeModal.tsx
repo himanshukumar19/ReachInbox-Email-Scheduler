@@ -19,9 +19,10 @@ export default function ComposeModal({ open, onClose }: { open: boolean; onClose
     if (!file) return;
     Papa.parse(file, {
       complete: (res) => {
-        const raw = (res.data as string[][]).flat().map((s) => String(s).trim());
+        const raw = (res.data as string[][]).flat().filter((s): s is string => s != null && String(s).trim() !== "").map((s) => String(s).trim());
         const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const deduped = [...new Set(raw.filter((s) => emailRe.test(s)).map((s) => s.toLowerCase()))];
+        const valid = raw.filter((s) => emailRe.test(s)).map((s) => s.toLowerCase());
+        const deduped = [...new Set(valid)];
         setRecipients(deduped);
         toast.success(`${deduped.length} valid addresses found`);
       },
