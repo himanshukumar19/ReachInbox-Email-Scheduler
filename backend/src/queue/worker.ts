@@ -34,5 +34,9 @@ export function createEmailWorker(repository: EmailRepository, mailProvider: Mai
     },
     { connection: getRedis(), concurrency: env.workerConcurrency, limiter: { max: 1, duration: env.delayMs } }
   );
+  worker.on('error', (err) => console.error('WORKER ERROR', err));
+  worker.on('failed', (job, err) => console.error('JOB FAILED', job?.id, err));
+  worker.on('active', (job) => console.log('JOB ACTIVE', job?.id));
+  worker.on('completed', (job) => console.log('JOB COMPLETED', job?.id));
   return worker;
 }
