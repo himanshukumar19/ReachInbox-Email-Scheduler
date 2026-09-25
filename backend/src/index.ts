@@ -24,7 +24,14 @@ if (env.googleClientId) {
         const email = profile.emails?.[0]?.value ?? "";
         let user = await prisma.user.findUnique({ where: { googleId: profile.id } });
         if (!user) {
-          user = await prisma.user.create({ data: { googleId: profile.id, email, name: profile.displayName, avatar: profile.photos?.[0]?.value } });
+          user = await prisma.user.create({
+            data: {
+              googleId: profile.id,
+              email,
+              name: profile.displayName,
+              avatar: profile.photos?.[0]?.value,
+            },
+          });
         }
         done(null, { id: user.id, email: user.email, name: user.name, avatar: user.avatar });
       }
@@ -41,4 +48,4 @@ app.use("/api/auth", authRouter());
 
 createEmailWorker(repository, mailProvider);
 
-app.listen(env.port, () => console.log(`Backend listening on ${env.port}`));
+app.listen(env.port);

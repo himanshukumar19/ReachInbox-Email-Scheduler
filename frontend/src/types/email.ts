@@ -20,6 +20,7 @@ export type SchedulePayload = {
   sender: string;
   scheduledAt: string;
   delayBetweenMs?: number;
+  hourlyLimit?: number;
 };
 
 export type ScheduleResponse = {

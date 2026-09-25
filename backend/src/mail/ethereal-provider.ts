@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { MailProvider } from "./mail-provider";
+import { MailProvider, SendResult } from "./mail-provider";
 import { EmailRecord } from "../repositories/email.repository";
 import { env } from "../config/env";
 
@@ -7,17 +7,20 @@ export class EtherealProvider implements MailProvider {
   private transporter = nodemailer.createTransport({
     host: env.etherealHost,
     port: env.etherealPort,
-    secure: false,
     auth: { user: env.etherealUser, pass: env.etherealPass },
   });
 
-  async send(email: EmailRecord) {
+  async send(email: EmailRecord): Promise<SendResult> {
     const info = await this.transporter.sendMail({
       from: email.sender,
       to: email.recipient,
       subject: email.subject,
       html: email.body,
     });
-    return info;
+    const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+    if (previewUrl) {
+      process.stdout.write(`Ethereal preview: ${previewUrl}\n`);
+    }
+    return { messageId: info.messageId, previewUrl };
   }
 }

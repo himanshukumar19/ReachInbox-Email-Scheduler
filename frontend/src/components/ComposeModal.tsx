@@ -42,7 +42,11 @@ function validateForm(form: FormState, recipients: string[]): FormErrors {
   if (!form.body.trim()) errors.body = "Body is required";
   if (!form.sender.trim()) errors.sender = "Sender email is required";
   else if (!emailRe.test(form.sender)) errors.sender = "Enter a valid email address";
-  if (!form.scheduledAt) errors.scheduledAt = "Start time is required";
+  if (!form.scheduledAt) {
+    errors.scheduledAt = "Start time is required";
+  } else if (new Date(form.scheduledAt) <= new Date()) {
+    errors.scheduledAt = "Start time must be in the future";
+  }
   if (recipients.length === 0) errors.recipients = "Upload a CSV with at least one valid address";
   return errors;
 }
@@ -68,7 +72,6 @@ function InputField({
   onChange,
   error,
   min,
-  max,
 }: {
   id: string;
   type?: string;
@@ -77,7 +80,6 @@ function InputField({
   onChange: (v: string) => void;
   error?: string;
   min?: number;
-  max?: number;
 }) {
   return (
     <div>
@@ -87,7 +89,6 @@ function InputField({
         placeholder={placeholder}
         value={value}
         min={min}
-        max={max}
         onChange={(e) => onChange(e.target.value)}
         className={`focus-ring mt-1 w-full rounded-sm border bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-accent focus:outline-none ${
           error ? "border-badge-failed-text" : "border-border"
@@ -101,6 +102,7 @@ function InputField({
 export default function ComposeModal({ open, onClose, onScheduled }: ComposeModalProps) {
   const [form, setForm] = useState<FormState>(initialForm);
   const [recipients, setRecipients] = useState<string[]>([]);
+  const [skippedCount, setSkippedCount] = useState(0);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -115,11 +117,21 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
     if (!file) return;
     Papa.parse<string[]>(file, {
       complete: (res) => {
-        const valid = parseEmailsFromRows(res.data);
+        const allNonEmpty = res.data
+          .flat()
+          .map((s) => String(s).trim())
+          .filter((s) => s !== "");
+        const valid = Array.from(
+          new Set(allNonEmpty.filter((s) => emailRe.test(s)).map((s) => s.toLowerCase()))
+        );
+        const skipped = allNonEmpty.length - valid.length;
         setRecipients(valid);
+        setSkippedCount(skipped);
         setErrors((prev) => ({ ...prev, recipients: undefined }));
         if (valid.length > 0) {
-          toast.success(`${valid.length} valid address${valid.length !== 1 ? "es" : ""} found`);
+          toast.success(
+            `${valid.length} valid address${valid.length !== 1 ? "es" : ""} found${skipped > 0 ? ` — ${skipped} invalid row${skipped !== 1 ? "s" : ""} skipped` : ""}`
+          );
         } else {
           toast.error("No valid email addresses found in the file");
         }
@@ -141,6 +153,7 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
       sender: form.sender,
       scheduledAt: new Date(form.scheduledAt).toISOString(),
       delayBetweenMs: form.delayBetweenMs,
+      hourlyLimit: form.hourlyLimit,
     };
 
     setSubmitting(true);
@@ -149,6 +162,7 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
       toast.success(`${result.count} email${result.count !== 1 ? "s" : ""} scheduled`);
       setForm(initialForm);
       setRecipients([]);
+      setSkippedCount(0);
       if (fileRef.current) fileRef.current.value = "";
       onScheduled();
       onClose();
@@ -162,6 +176,7 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
   function handleClose() {
     setForm(initialForm);
     setRecipients([]);
+    setSkippedCount(0);
     setErrors({});
     if (fileRef.current) fileRef.current.value = "";
     onClose();
@@ -214,9 +229,7 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
                   placeholder="Email content…"
                   value={form.body}
                   rows={5}
-                  onChange={(e) => {
-                    setField("body", e.target.value);
-                  }}
+                  onChange={(e) => setField("body", e.target.value)}
                   className={`focus-ring mt-1 w-full resize-y rounded-sm border bg-surface px-3 py-2 text-sm text-primary placeholder:text-muted focus:border-accent focus:outline-none ${
                     errors.body ? "border-badge-failed-text" : "border-border"
                   }`}
@@ -261,12 +274,11 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
                 />
               </div>
               <div>
-                <FormLabel htmlFor="hourly">Hourly limit</FormLabel>
+                <FormLabel htmlFor="hourlyLimit">Hourly limit</FormLabel>
                 <InputField
-                  id="hourly"
+                  id="hourlyLimit"
                   type="number"
                   min={1}
-                  max={1000}
                   value={form.hourlyLimit}
                   onChange={(v) => setField("hourlyLimit", parseInt(v, 10) || 50)}
                   error={errors.hourlyLimit}
@@ -278,7 +290,9 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
               <FormLabel htmlFor="csvFile">Recipients</FormLabel>
               <div
                 className={`mt-1 rounded-sm border border-dashed px-4 py-4 ${
-                  errors.recipients ? "border-badge-failed-text bg-badge-failed-bg/30" : "border-border bg-page"
+                  errors.recipients
+                    ? "border-badge-failed-text bg-badge-failed-bg/30"
+                    : "border-border bg-page"
                 }`}
               >
                 <div className="flex flex-col items-center gap-2 text-center">
@@ -297,9 +311,16 @@ export default function ComposeModal({ open, onClose, onScheduled }: ComposeModa
                     Choose file
                   </label>
                   {recipients.length > 0 ? (
-                    <p className="text-sm font-medium text-badge-sent-text">
-                      {recipients.length} valid address{recipients.length !== 1 ? "es" : ""} detected
-                    </p>
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium text-badge-sent-text">
+                        {recipients.length} valid address{recipients.length !== 1 ? "es" : ""} detected
+                      </p>
+                      {skippedCount > 0 && (
+                        <p className="text-2xs text-muted">
+                          {skippedCount} invalid row{skippedCount !== 1 ? "s" : ""} skipped
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-xs text-muted">CSV or plain text, one address per line</p>
                   )}

@@ -161,26 +161,26 @@ Rules that keep this clean:
 ## 8. Features Checklist
 
 ### Backend
-- [ ] Accept scheduling requests via API, store in relational DB
-- [ ] Schedule sends using BullMQ delayed jobs (never cron)
-- [ ] Send from multiple senders via Ethereal Email
-- [ ] Survive restarts — no duplicate or lost sends
-- [ ] Configurable worker concurrency, safe under parallel jobs
-- [ ] Minimum delay between individual sends (documented in README)
-- [ ] Configurable hourly rate limit (global or per-sender), Redis/DB-backed
-- [ ] On limit hit, reschedule into next hour window — never drop
-- [ ] Defined behavior for 1000+ emails scheduled at the same time (API doesn't block on enqueue)
+- [x] Accept scheduling requests via API, store in relational DB
+- [x] Schedule sends using BullMQ delayed jobs (never cron)
+- [x] Send from multiple senders via Ethereal Email
+- [x] Survive restarts — no duplicate or lost sends
+- [x] Configurable worker concurrency, safe under parallel jobs
+- [x] Minimum delay between individual sends (documented in README)
+- [x] Configurable hourly rate limit (global or per-sender), Redis/DB-backed — per-request `hourlyLimit` overrides global `MAX_EMAILS_PER_HOUR` env fallback
+- [x] On limit hit, reschedule into next hour window — never drop
+- [x] Defined behavior for 1000+ emails scheduled at the same time (API doesn't block on enqueue)
 
 ### Frontend
-- [ ] Real Google OAuth login (not mocked), redirect to dashboard after login
-- [ ] Header shows name, email, avatar; logout works
-- [ ] Dashboard: header + Scheduled/Sent tabs + Compose New Email button, matching Figma
-- [ ] Compose flow: subject, body, CSV/text lead upload with detected address count, start time, delay, hourly limit, Schedule action
-- [ ] CSV parsing is defensive — malformed or invalid rows are skipped rather than crashing the upload, and the UI shows how many valid addresses were actually found
-- [ ] Scheduled Emails table: email, subject, scheduled time, status, loading/empty states
-- [ ] Sent Emails table: email, subject, sent time, status (sent/failed), loading/empty states
-- [ ] Reusable components (buttons, inputs, tables, modals), DRY, typed API responses and props
-- [ ] Basic error handling via messages/toasts
+- [x] Real Google OAuth login (not mocked), redirect to dashboard after login
+- [x] Header shows name, email, avatar; logout works
+- [x] Dashboard: header + Scheduled/Sent tabs + Compose New Email button, matching Figma
+- [x] Compose flow: subject, body, CSV/text lead upload with detected address count, start time, delay, hourly limit, Schedule action — `hourlyLimit` wired through to POST body and enforced by rate limiter
+- [x] CSV parsing is defensive — malformed or invalid rows are skipped rather than crashing the upload, and the UI shows how many valid addresses were actually found plus how many were skipped
+- [x] Scheduled Emails table: email, subject, scheduled time, status, skeleton loading rows, empty state
+- [x] Sent Emails table: email, subject, sent time, status (sent/failed), skeleton loading rows, empty state
+- [x] Reusable components (`EmailTable`, `ComposeModal`, `Header`, `StatusBadge`, `LoginPage`), DRY, typed API responses and props
+- [x] Basic error handling via `sonner` toasts; Compose validation (empty subject/body, 0 recipients, past date) blocks submit inline before any API call fires
 
 ---
 
@@ -215,10 +215,12 @@ Follow this sequence. Do not build frontend and backend in parallel — the fron
 
 ## 11. API Endpoints (adjust names if needed, but document whatever is built)
 
-- `POST /api/emails/schedule` — create and enqueue a batch of scheduled emails
-- `GET /api/emails/scheduled` — list emails not yet sent
-- `GET /api/emails/sent` — list emails with status sent or failed
-- `GET /api/auth/google` and `GET /api/auth/callback` — OAuth flow
+- `POST /api/emails/schedule` — create and enqueue a batch of scheduled emails. Accepts `{ recipients, subject, body, sender, scheduledAt, delayBetweenMs?, hourlyLimit? }`. `hourlyLimit` (integer ≥ 1) overrides the global `MAX_EMAILS_PER_HOUR` env cap for this batch — stored in each BullMQ job's Redis payload and read by the worker at send time. When omitted, the worker falls back to `env.maxPerHour`.
+- `GET /api/emails/scheduled` — list emails with `status=scheduled` (supports `?limit=` and `?offset=`)
+- `GET /api/emails/sent` — list emails with `status∈{sent,failed}` (supports `?limit=` and `?offset=`)
+- `GET /api/auth/google` and `GET /api/auth/google/callback` — OAuth flow; callback redirects to `FRONTEND_URL/auth/callback?token=<jwt>`
+- `GET /api/me` — returns current authenticated user `{ id, email, name, avatar }`
+- `GET /health` — liveness probe, returns `{"ok":true}`
 
 ---
 

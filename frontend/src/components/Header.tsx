@@ -18,9 +18,9 @@ function AvatarFallback({ name }: { name: string }) {
   const initials = name
     .split(" ")
     .slice(0, 2)
-    .map((n) => n[0])
+    .map((n) => n[0] ?? "")
     .join("")
-    .toUpperCase();
+    .toUpperCase() || "?";
   return (
     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent-subtle text-xs font-semibold text-accent">
       {initials}

@@ -1,32 +1,30 @@
-import nodemailer from "nodemailer";
 import { Worker, Job } from "bullmq";
 import { getRedis } from "../config/redis";
 import { env } from "../config/env";
 import { EmailRepository } from "../repositories/email.repository";
 import { MailProvider } from "../mail/mail-provider";
 import { checkAndIncrement, msUntilNextHour } from "../rateLimiter/hourly-limiter";
+import { EmailJobData } from "./queue";
 
 export function createEmailWorker(repository: EmailRepository, mailProvider: MailProvider) {
   const worker = new Worker(
     "email-send",
-    async (job: Job<{ emailId: string }>) => {
-      const { emailId } = job.data;
+    async (job: Job<EmailJobData>) => {
+      const { emailId, hourlyLimit } = job.data;
       const email = await repository.findById(emailId);
       if (!email) return;
       if (email.status === "sent") return;
 
-      const { allowed } = await checkAndIncrement(email.sender);
+      const { allowed } = await checkAndIncrement(email.sender, hourlyLimit);
       if (!allowed) {
         await job.moveToDelayed(Date.now() + msUntilNextHour());
         return;
       }
 
       try {
-        const info = await mailProvider.send(email);
-        console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
+        await mailProvider.send(email);
         await repository.updateStatus(emailId, "sent");
       } catch (err) {
-        console.error("Send failed:", err);
         const maxAttempts = job.opts.attempts ?? 1;
         if (job.attemptsMade >= maxAttempts) {
           await repository.updateStatus(emailId, "failed");

@@ -12,10 +12,13 @@ export function msUntilNextHour(from: Date = new Date()): number {
   return next.getTime() - from.getTime();
 }
 
-export async function checkAndIncrement(sender: string): Promise<{ allowed: boolean; count: number }> {
+export async function checkAndIncrement(
+  sender: string,
+  maxPerHour: number = env.maxPerHour
+): Promise<{ allowed: boolean; count: number }> {
   const redis = getRedis();
   const key = hourWindowKey(sender, new Date());
   const count = await redis.incr(key);
   if (count === 1) await redis.expire(key, 3600);
-  return { allowed: count <= env.maxPerHour, count };
+  return { allowed: count <= maxPerHour, count };
 }

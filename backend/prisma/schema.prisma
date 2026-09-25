@@ -15,7 +15,7 @@ enum EmailStatus {
 }
 
 model Email {
-  id          String      @id @default(cuid())
+  id          String      @id
   recipient   String
   subject     String
   body        String      @db.Text

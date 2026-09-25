@@ -7,7 +7,6 @@ import EmailTable from "../components/EmailTable";
 import ComposeModal from "../components/ComposeModal";
 import LoginPage from "../components/LoginPage";
 import { fetchMe, fetchScheduled, fetchSent } from "../lib/api";
-import { googleAuthUrl } from "../lib/utils";
 
 type Tab = "scheduled" | "sent";
 
@@ -43,8 +42,8 @@ export default function RootPage() {
 
   function handleLogout() {
     localStorage.removeItem("token");
-    window.location.href = googleAuthUrl();
     queryClient.clear();
+    window.location.href = "/";
   }
 
   function handleScheduled() {

@@ -18,12 +18,44 @@ const columnDefs: Record<Column, ColumnDef> = {
   status: { key: "status", label: "Status" },
 };
 
+const skeletonWidths: Record<Column, string> = {
+  recipient: "w-40",
+  subject: "w-56",
+  scheduledAt: "w-32",
+  updatedAt: "w-32",
+  status: "w-16",
+};
+
 type EmailTableProps = {
   emails: Email[];
   loading?: boolean;
   emptyText?: string;
   columns: Column[];
 };
+
+function SkeletonCell({ column }: { column: Column }) {
+  return (
+    <div
+      className={`h-3.5 animate-pulse rounded-sm bg-border ${skeletonWidths[column]}`}
+    />
+  );
+}
+
+function SkeletonRows({ columns, count }: { columns: Column[]; count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, rowIdx) => (
+        <tr key={rowIdx} className="border-b border-border last:border-0">
+          {columns.map((col) => (
+            <td key={col} className="px-4 py-3.5">
+              <SkeletonCell column={col} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
 
 function CellValue({ email, column }: { email: Email; column: Column }) {
   if (column === "status") return <StatusBadge status={email.status} />;
@@ -33,22 +65,6 @@ function CellValue({ email, column }: { email: Email; column: Column }) {
 }
 
 export default function EmailTable({ emails, loading, emptyText, columns }: EmailTableProps) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-accent" />
-      </div>
-    );
-  }
-
-  if (!emails.length) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-16">
-        <p className="text-sm text-muted">{emptyText ?? "Nothing here yet"}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
@@ -65,18 +81,28 @@ export default function EmailTable({ emails, loading, emptyText, columns }: Emai
           </tr>
         </thead>
         <tbody>
-          {emails.map((email) => (
-            <tr
-              key={email.id}
-              className="border-b border-border transition-colors last:border-0 hover:bg-page"
-            >
-              {columns.map((col) => (
-                <td key={col} className="px-4 py-3 text-primary">
-                  <CellValue email={email} column={col} />
-                </td>
-              ))}
+          {loading ? (
+            <SkeletonRows columns={columns} count={5} />
+          ) : emails.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="py-16 text-center text-sm text-muted">
+                {emptyText ?? "Nothing here yet"}
+              </td>
             </tr>
-          ))}
+          ) : (
+            emails.map((email) => (
+              <tr
+                key={email.id}
+                className="border-b border-border transition-colors last:border-0 hover:bg-page"
+              >
+                {columns.map((col) => (
+                  <td key={col} className="px-4 py-3 text-primary">
+                    <CellValue email={email} column={col} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

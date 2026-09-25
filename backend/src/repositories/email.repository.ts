@@ -17,7 +17,9 @@ export type EmailCreateData = Omit<EmailRecord, "id" | "createdAt" | "updatedAt"
   status?: EmailStatus;
 };
 
-export type EmailBulkCreateData = Omit<EmailRecord, "createdAt" | "updatedAt"> & { status?: EmailStatus };
+export type EmailBulkCreateData = Omit<EmailRecord, "createdAt" | "updatedAt" | "status"> & {
+  status?: EmailStatus;
+};
 
 export interface EmailRepository {
   create(data: EmailCreateData): Promise<EmailRecord>;

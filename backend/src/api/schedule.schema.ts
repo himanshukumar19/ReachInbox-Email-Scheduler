@@ -7,6 +7,7 @@ export const scheduleSchema = z.object({
   sender: z.string().email(),
   scheduledAt: z.string().datetime(),
   delayBetweenMs: z.number().int().min(0).optional(),
+  hourlyLimit: z.number().int().min(1).optional(),
 });
 
 export type ScheduleInput = z.infer<typeof scheduleSchema>;
