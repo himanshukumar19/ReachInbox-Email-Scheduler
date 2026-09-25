@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { EmailRepository, EmailRecord, EmailCreateData, EmailBulkCreateData } from "./email.repository";
 import { getPrisma } from "../db/prisma-client";
 
@@ -5,7 +6,7 @@ export class PrismaEmailRepository implements EmailRepository {
   private prisma = getPrisma();
 
   async create(data: EmailCreateData): Promise<EmailRecord> {
-    const row = await this.prisma.email.create({ data: { ...data, status: data.status ?? "scheduled" } });
+    const row = await this.prisma.email.create({ data: { ...data, id: randomUUID(), status: data.status ?? "scheduled" } });
     return row as EmailRecord;
   }
 
