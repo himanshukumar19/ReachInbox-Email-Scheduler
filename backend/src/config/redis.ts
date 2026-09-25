@@ -5,7 +5,7 @@ let instance: IORedis | null = null;
 
 export function getRedis(): IORedis {
   if (!instance) {
-    instance = new IORedis(env.redisUrl, { maxRetriesPerRequest: null });
+    instance = new IORedis(env.redisUrl, { maxRetriesPerRequest: null, enableReadyCheck: false });
   }
   return instance;
 }
